@@ -2,7 +2,7 @@
 
 #include "hardware.h"
 
-#define BUZZER_PIN 6 // WiringPi 6번 (BCM 25)
+#define BUZZER_PIN 2 // WiringPi 2번 (BCM 27)
 
 void set_buzzer(int state) {
     static int init_flag = 0;
