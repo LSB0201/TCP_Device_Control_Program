@@ -30,11 +30,11 @@ add_library(remote_core STATIC
 # 라이브러리에 필요한 의존성 링크
 target_link_libraries(remote_core PRIVATE ${WIRINGPI_LIBRARIES} Threads::Threads)
 
-# 2. 서버 실행 파일 생성 (main.c)
+# 서버 실행 파일 생성 (main.c) - 라즈베리파이에서 실행
 add_executable(remote_server src/main.c)
 target_link_libraries(remote_server PRIVATE remote_core ${WIRINGPI_LIBRARIES} Threads::Threads)
 
 
-# 3. 클라이언트 실행 파일 생성 (client.c)
+# 클라이언트 실행 파일 생성 (client.c) - 우분투 실행
 add_executable(remote_client src/client.c)
-target_link_libraries(remote_client PRIVATE remote_core Threads::Threads)
+target_link_libraries(remote_client PRIVATE Threads::Threads)

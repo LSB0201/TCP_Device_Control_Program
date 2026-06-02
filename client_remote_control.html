@@ -3,54 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>라즈베리파이 원격 제어</title>
+    <title>클라이언트 원격 제어 화면 구성</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        .container { border: 2px solid #ccc; padding: 20px; border-radius: 10px; background-color: white; max-width: 600px; margin: auto; }
-        .section { border: 1px solid #aaa; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        button { padding: 8px 15px; font-size: 16px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #555; }
-        .btn-on { background-color: #4CAF50; color: white; }
-        .btn-off { background-color: #f44336; color: white; }
-        .btn-stop-all { background-color: #000; color: white; font-weight: bold; width: 100%; padding: 15px; }
-        input[type="number"] { padding: 8px; font-size: 16px; width: 60px; text-align: center; }
-        .sensor-box { display: inline-block; width: 100px; height: 30px; border: 1px solid #000; vertical-align: middle; line-height: 30px; font-weight: bold; background-color: #eef; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f9f9f9; padding: 20px; }
+        .container { 
+            border: 2px solid #333; background-color: white; 
+            max-width: 600px; margin: auto; padding: 30px; border-radius: 5px;
+        }
+        h2 { margin-top: 0; font-size: 24px; }
+        .divider { height: 10px; background-color: #222; margin: 20px 0; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .control-group h3 { font-size: 20px; margin-bottom: 15px; }
+        .control-group p { margin-bottom: 5px; font-weight: bold; color: #555; }
+        
+        button { 
+            padding: 10px 20px; font-size: 16px; border: none; 
+            border-radius: 10px; cursor: pointer; margin: 5px; font-weight: bold;
+        }
+        /* 첨부 이미지 색상 맞춤 */
+        .btn-off { background-color: #ffcccc; color: #333; }
+        .btn-on { background-color: #ccffcc; color: #333; }
+        .btn-blue { background-color: #cce5ff; color: #333; }
+        .btn-stop-all { background-color: #ffcccc; color: #333; width: 60%; padding: 15px; margin-top: 30px; font-size: 18px; }
+        
+        input[type="number"] { 
+            padding: 10px; font-size: 16px; width: 120px; text-align: center; 
+            border: 2px solid #333; border-radius: 5px; 
+        }
+        .sensor-box { 
+            display: inline-block; width: 150px; height: 40px; border: 2px solid #333; 
+            vertical-align: middle; line-height: 40px; font-weight: bold; font-size: 18px; text-align: center;
+        }
     </style>
     <script>
-        // 서버로 제어 명령을 전송하는 비동기 함수 (화면 새로고침 없음)
         function sendCommand(cmd) {
             fetch('/api/cmd?' + cmd).catch(err => console.error(err));
         }
 
-        // LED 로직 (꺼져있어도 밝기 조절 시 자동으로 켜짐)
+        // LED 전원 및 밝기 제어 (tcp_server.c의 led_pwm 명령어로 통일)
         let ledState = false;
         function setLedPower(state) {
             ledState = state;
-            sendCommand('led_power=' + (state ? '1' : '0'));
+            // On 이면 100%, Off 이면 0% 전송
+            sendCommand('led_pwm=' + (state ? '100' : '0'));
         }
         function setLedBrightness(val) {
-            if (!ledState) setLedPower(true); // 전원이 꺼져있으면 먼저 켬
+            ledState = true; 
             sendCommand('led_pwm=' + val);
         }
 
-        // 7-Segment 로직
         function startCountdown() {
             const num = document.getElementById('segInput').value;
-            if (num >= 0 && num <= 9) sendCommand('seg_count=' + num);
+            if (num >= 0 && num <= 9 && num !== "") sendCommand('seg_count=' + num);
             else alert("0~9 사이의 숫자를 입력하세요.");
         }
 
-        // 센서 타이머 관리
         let lightTimer = null, tempTimer = null;
 
         function toggleLight(state) {
             if (state) {
                 if (lightTimer) return;
-                fetchSensor('light'); // 즉시 1회 실행
+                fetchSensor('light'); 
                 lightTimer = setInterval(() => fetchSensor('light'), 3000);
             } else {
                 clearInterval(lightTimer);
                 lightTimer = null;
-                document.getElementById('light_val').innerText = ''; // 칸 비우기
+                document.getElementById('light_val').innerText = ''; 
             }
         }
 
@@ -62,7 +81,7 @@
             } else {
                 clearInterval(tempTimer);
                 tempTimer = null;
-                document.getElementById('temp_val').innerText = ''; // 칸 비우기
+                document.getElementById('temp_val').innerText = ''; 
             }
         }
 
@@ -83,47 +102,68 @@
     </script>
 </head>
 <body>
+    <h2>클라이언트 원격 제어 화면 구성</h2>
     <div class="container">
-        <h2>라즈베리파이 원격 제어</h2>
         
-        <div class="section">
+        <div class="control-group">
             <h3>LED</h3>
-            <button class="btn-on" onclick="setLedPower(true)">ON</button>
-            <button class="btn-off" onclick="setLedPower(false)">OFF</button>
-            <br><br>
-            <button onclick="setLedBrightness(25)">25%</button>
-            <button onclick="setLedBrightness(50)">50%</button>
-            <button onclick="setLedBrightness(75)">75%</button>
-            <button onclick="setLedBrightness(100)">100%</button>
+            <div class="grid-2">
+                <div>
+                    <p>LED 전원</p>
+                    <button class="btn-off" onclick="setLedPower(false)">Off</button>
+                    <button class="btn-on" onclick="setLedPower(true)">On</button>
+                </div>
+                <div>
+                    <p>LED 밝기 조절</p>
+                    <button class="btn-blue" onclick="setLedBrightness(30)">최저</button>
+                    <button class="btn-blue" onclick="setLedBrightness(60)">중간</button>
+                    <button class="btn-blue" onclick="setLedBrightness(100)">최대</button>
+                </div>
+            </div>
         </div>
 
-        <div class="section">
-            <h3>부저</h3>
-            <button class="btn-on" onclick="sendCommand('buzzer=play')">ON</button>
-            <button class="btn-off" onclick="sendCommand('buzzer=stop')">OFF</button>
+        <div class="divider"></div>
+
+        <div class="grid-2 control-group">
+            <div>
+                <h3>부저</h3>
+                <p>음악 제어</p>
+                <button class="btn-off" onclick="sendCommand('buzzer=stop')">소리 Off</button>
+                <button class="btn-on" onclick="sendCommand('buzzer=play')">소리 On</button>
+            </div>
+            <div>
+                <h3>7세그먼트</h3>
+                <p>전송할 숫자 입력(0 ~ 9)</p>
+                <input type="number" id="segInput" min="0" max="9" placeholder="입력하는 곳">
+                <button class="btn-blue" onclick="startCountdown()">입력 버튼</button>
+            </div>
         </div>
 
-        <div class="section">
-            <h3>7-Segment</h3>
-            <input type="number" id="segInput" min="0" max="9" value="9">
-            <button class="btn-on" onclick="startCountdown()">입력</button>
+        <div class="divider"></div>
+
+        <div class="grid-2 control-group">
+            <div>
+                <h3>조도 센서</h3>
+                <p>현재 조도 센서 값</p>
+                <div id="light_val" class="sensor-box"> - </div>
+                <br>
+                <button class="btn-on" onclick="toggleLight(true)">측정 시작</button>
+                <button class="btn-off" onclick="toggleLight(false)">측정 종료</button>
+            </div>
+            <div>
+                <h3>온도 측정</h3>
+                <p>현재 온도 값</p>
+                <div id="temp_val" class="sensor-box"> - </div>
+                <br>
+                <button class="btn-on" onclick="toggleTemp(true)">측정 시작</button>
+                <button class="btn-off" onclick="toggleTemp(false)">측정 종료</button>
+            </div>
         </div>
 
-        <div class="section">
-            <h3>조도 센서 측정</h3>
-            <div id="light_val" class="sensor-box"></div>
-            <button class="btn-on" onclick="toggleLight(true)">측정 시작</button>
-            <button class="btn-off" onclick="toggleLight(false)">측정 종료</button>
+        <div style="text-align: center;">
+            <button class="btn-stop-all" onclick="stopAll()">전체 종료</button>
         </div>
 
-        <div class="section">
-            <h3>온도 센서 측정</h3>
-            <div id="temp_val" class="sensor-box"></div>
-            <button class="btn-on" onclick="toggleTemp(true)">측정 시작</button>
-            <button class="btn-off" onclick="toggleTemp(false)">측정 종료</button>
-        </div>
-
-        <button class="btn-stop-all" onclick="stopAll()">전체 종료</button>
     </div>
 </body>
 </html>
