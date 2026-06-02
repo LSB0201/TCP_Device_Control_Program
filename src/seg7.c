@@ -36,8 +36,8 @@ void* seg_countdown_thread(void* arg) {
         if (cancel_task_flag) break;
         display_7segment(i);
         
-        for (int j = 0; j < 10; j++ {
-            if (cancerl_task_flag) break;
+        for (int j = 0; j < 10; j++) {
+            if (cancel_task_flag) break;
             delay(100);
         }
     }
