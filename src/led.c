@@ -24,5 +24,6 @@ void set_led_brightness(int duty_cycle) {
     if (duty_cycle > 100){
         duty_cycle = 100;
     }
-        
+    
+    softPwmWrite(LED_PIN, duty_cycle);
 }

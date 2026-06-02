@@ -1,3 +1,4 @@
+#include <wiringPi.h>
 #include <wiringPiI2C.h>
 
 #include "hardware.h"
@@ -18,8 +19,8 @@ void* i2c_sensor_thread(void* arg) {
     DeviceState* state = (DeviceState*)arg; // 상태 값 저장
     
     // I2C 장치 초기화
-    int fd = 0;
-    if (fd = wiringPiI2CSetup(P_ADDR) < 0) {
+    int fd = wiringPiI2CSetup(P_ADDR);
+    if (fd < 0) {
         perror("I2C Sertup");
         return NULL;
     }

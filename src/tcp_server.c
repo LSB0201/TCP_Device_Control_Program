@@ -6,7 +6,7 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <pthread.h>
-
+#include <wiringPi.h>
 
 // 이전 작업 취소 및 쓰레드 교체 함수
 void start_exclusive_task(int task_type, int arg_val) {
@@ -84,7 +84,6 @@ void handle_client_request(int client_fd, DeviceState* state) {
             display_7segment(0);
         }
         else if (strcmp(buffer, "CMD:GET_SENSOR") == 0) {
-            // 센서 데이터는 문자열로 예쁘게 포맷팅하여 응답
             pthread_mutex_lock(&state->mutex);
             snprintf(resp, sizeof(resp), "현재 온도: %.1f C | 조도 값: %d", 
                      state->temperature, state->light_intensity);
@@ -163,13 +162,15 @@ void run_server_loop(int server_fd, DeviceState* state, volatile sig_atomic_t* k
             if (events[i].data.fd == server_fd) {
                 struct sockaddr_in client_addr;
                 socklen_t client_len = sizeof(client_addr);
+
                 int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
                 if (client_fd >= 0) {
                     ev.events = EPOLLIN | EPOLLET;
                     ev.data.fd = client_fd;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
                 }
-            } else {
+            }
+            else {
                 int client_fd = events[i].data.fd;
                 handle_client_request(client_fd, state);
                 close(client_fd); 
