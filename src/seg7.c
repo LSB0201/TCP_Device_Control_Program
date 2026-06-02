@@ -1,8 +1,9 @@
-#include "hardware.h"
 #include <wiringPi.h>
 
+#include "hardware.h"
+
 // BCD 입력을 위한 4개의 핀 배열 (WiringPi 핀 번호 기준)
-const int BCD_PINS[4] = {3, 4, 5, 6}; // 핀은 추후 수정 해야 됨.
+const int BCD_PINS[4] = {3, 4, 5, 6};
 
 void display_7segment(int number) {
     static int initialized = 0;
