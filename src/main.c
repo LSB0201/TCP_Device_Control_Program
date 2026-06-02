@@ -3,6 +3,10 @@
 #include "server.h"
 #include <wiringPi.h> // wiringPiSetup() 호출을 위해 포함
 
+// 노래와 카운트 다운, 배타적 실행 제어를 위한 전역 변수
+volatile int current_exclusive_task = 0; // common.h 헤더파일 참고
+volatile int cancel_task_flag = 0;
+
 // 안전 종료를 위한 종료 플래그
 volatile sig_atomic_t keep_running = 1;
 

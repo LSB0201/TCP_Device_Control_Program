@@ -7,72 +7,24 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-// --- 배타적 실행 제어를 위한 전역 변수 (부저 vs 7세그먼트) ---
-volatile int current_exclusive_task = 0; // 0: 없음, 1: 부저 노래, 2: 세그먼트 카운트다운
-volatile int cancel_task_flag = 0;       // 1이 되면 현재 실행중인 쓰레드가 루프를 탈출하여 즉시 종료됨
 
-// 부저 노래 쓰레드
-void* buzzer_song_thread(void* arg) {
-    (void)arg;
-    current_exclusive_task = 1;
-    
-    // 예시 노래 패턴 (실제로는 주파수 배열 등을 사용)
-    for (int i = 0; i < 5; i++) {
-        if (cancel_task_flag) break; // 즉시 종료 플래그 확인
-        set_buzzer(1); delay(300);
-        set_buzzer(0); delay(100);
-    }
-    
-    set_buzzer(0); // 자동 종료
-    if (current_exclusive_task == 1) current_exclusive_task = 0;
-    return NULL;
-}
-
-// 7세그먼트 카운트다운 쓰레드
-void* seg_countdown_thread(void* arg) {
-    int start_num = *(int*)arg;
-    free(arg);
-    current_exclusive_task = 2;
-
-    for (int i = start_num; i >= 0; i--) {
-        if (cancel_task_flag) break; // 즉시 종료 플래그 확인
-        display_7segment(i);
-        
-        // 1초 대기 (응답성을 위해 100ms씩 10번 나누어 플래그 검사)
-        for(int j=0; j<10; j++) {
-            if (cancel_task_flag) break;
-            delay(100);
-        }
-    }
-    
-    display_7segment(0); // 종료 시 소등 (BCD 0 처리)
-    
-    // 중간에 취소된게 아니라 정상적으로 0까지 도달했다면 부저 1초 울림
-    if (!cancel_task_flag) {
-        set_buzzer(1);
-        delay(1000);
-        set_buzzer(0);
-    }
-
-    if (current_exclusive_task == 2)
-        current_exclusive_task = 0;
-    return NULL;
-}
-
-// --- 이전 작업 취소 및 쓰레드 교체 함수 ---
+// 이전 작업 취소 및 쓰레드 교체 함수
 void start_exclusive_task(int task_type, int arg_val) {
+    // 기존에 실행 중인 작업이 있으면 취소
     if (current_exclusive_task != 0) {
         cancel_task_flag = 1;
-        while (current_exclusive_task != 0) { delay(10); } // 쓰레드가 완전히 종료될 때까지 대기
+        while (current_exclusive_task != 0) { delay(10); } 
     }
-    cancel_task_flag = 0; // 초기화
+    cancel_task_flag = 0; // 플래그 초기화
 
     pthread_t tid;
     if (task_type == 1) {
+        // buzzer.c에 있는 함수 호출
         pthread_create(&tid, NULL, buzzer_song_thread, NULL);
-        pthread_detach(tid); // 좀비 쓰레드 방지
+        pthread_detach(tid); 
     }
     else if (task_type == 2) {
+        // seg7.c에 있는 함수 호출
         int* start_val = malloc(sizeof(int));
         *start_val = arg_val;
         pthread_create(&tid, NULL, seg_countdown_thread, (void*)start_val);
@@ -80,6 +32,7 @@ void start_exclusive_task(int task_type, int arg_val) {
     }
 }
 
+// TCP 서버 초기화 - socket()부터 listen()까지
 int init_tcp_server(int port) {
     int server_fd;
     struct sockaddr_in server_addr;
@@ -173,7 +126,7 @@ void handle_client_request(int client_fd, DeviceState* state) {
         pthread_mutex_unlock(&state->mutex);
         write(client_fd, resp, strlen(resp));
     }
-    
+
     // 웹 브라우저 최초 접속 시 HTML 화면 전송
     else if (strncmp(buffer, "GET / ", 6) == 0 || strncmp(buffer, "GET /HTTP", 9) == 0) {
         const char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n";

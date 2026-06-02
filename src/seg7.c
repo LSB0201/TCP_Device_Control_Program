@@ -26,3 +26,32 @@ void display_7segment(int number) {
         digitalWrite(BCD_PINS[i], bit_value);
     }
 }
+
+void* seg_countdown_thread(void* arg) {
+    int start_num = *(int*)arg;
+    free(arg); // 동적 할당 해제
+    current_exclusive_task = 2;
+
+    for (int i = start_num; i >= 0; i--) {
+        if (cancel_task_flag) break;
+        display_7segment(i);
+        
+        for (int j = 0; j < 10; j++ {
+            if (cancerl_task_flag) break;
+            delay(100);
+        }
+    }
+
+    display_7segment(0);
+
+    if (!cancel_task_flag) {
+        set_buzzer(1);
+        delay(1000);
+        set_buzzer(0);
+    }
+
+    if (current_exclusive_task == 2)
+        current_exclusive_task = 0;
+
+    return NULL;
+}

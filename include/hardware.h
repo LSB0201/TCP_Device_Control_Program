@@ -16,4 +16,8 @@ void display_7segment(int number);       // 7세그먼트 숫자 출력 (0~9)
 // 센서 데이터를 주기적으로 읽어 state 구조체에 저장하는 쓰레드 함수
 void* i2c_sensor_thread(void* arg);
 
+// 부저 배타적 실행을 위한 쓰래드
+void* buzzer_song_thread(void* arg);
+void* seg_countdown_thread(void* arg);
+
 #endif // HARDWARE_H
