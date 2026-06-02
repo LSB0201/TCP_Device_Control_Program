@@ -16,5 +16,5 @@ void set_buzzer(int state) {
     }
 
     // state가 1이면 키고, 0이면 끄기
-    digitalWrite(BUZZER_PIN, state ? HIGH : LOW)
+    digitalWrite(BUZZER_PIN, state ? HIGH : LOW);
 }
