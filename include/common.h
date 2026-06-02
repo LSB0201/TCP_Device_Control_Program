@@ -16,7 +16,7 @@
 typedef struct {
     int light_intensity;    // 조도 센서 값
     double temperature;     // 온도 센서 값
-    int led_brightness;     // LED 현재 밝기 (0~100)
+    int led_brightness;     // LED 현재 밝기 (0~255)
     int buzzer_status;      // 부저 상태 (0: OFF, 1: ON)
     int current_seg_num;    // 7세그먼트 현재 출력 숫자
     pthread_mutex_t mutex;  // 쓰레드 동기화를 위한 뮤텍스
