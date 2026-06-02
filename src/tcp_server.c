@@ -1,0 +1,227 @@
+#include "server.h"
+#include "hardware.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <pthread.h>
+
+// --- 배타적 실행 제어를 위한 전역 변수 (부저 vs 7세그먼트) ---
+volatile int current_exclusive_task = 0; // 0: 없음, 1: 부저 노래, 2: 세그먼트 카운트다운
+volatile int cancel_task_flag = 0;       // 1이 되면 현재 실행중인 쓰레드가 루프를 탈출하여 즉시 종료됨
+
+// 부저 노래 쓰레드
+void* buzzer_song_thread(void* arg) {
+    (void)arg;
+    current_exclusive_task = 1;
+    
+    // 예시 노래 패턴 (실제로는 주파수 배열 등을 사용)
+    for (int i = 0; i < 5; i++) {
+        if (cancel_task_flag) break; // 즉시 종료 플래그 확인
+        set_buzzer(1); delay(300);
+        set_buzzer(0); delay(100);
+    }
+    
+    set_buzzer(0); // 자동 종료
+    if (current_exclusive_task == 1) current_exclusive_task = 0;
+    return NULL;
+}
+
+// 7세그먼트 카운트다운 쓰레드
+void* seg_countdown_thread(void* arg) {
+    int start_num = *(int*)arg;
+    free(arg);
+    current_exclusive_task = 2;
+
+    for (int i = start_num; i >= 0; i--) {
+        if (cancel_task_flag) break; // 즉시 종료 플래그 확인
+        display_7segment(i);
+        
+        // 1초 대기 (응답성을 위해 100ms씩 10번 나누어 플래그 검사)
+        for(int j=0; j<10; j++) {
+            if (cancel_task_flag) break;
+            delay(100);
+        }
+    }
+    
+    display_7segment(0); // 종료 시 소등 (BCD 0 처리)
+    
+    // 중간에 취소된게 아니라 정상적으로 0까지 도달했다면 부저 1초 울림
+    if (!cancel_task_flag) {
+        set_buzzer(1);
+        delay(1000);
+        set_buzzer(0);
+    }
+
+    if (current_exclusive_task == 2)
+        current_exclusive_task = 0;
+    return NULL;
+}
+
+// --- 이전 작업 취소 및 쓰레드 교체 함수 ---
+void start_exclusive_task(int task_type, int arg_val) {
+    if (current_exclusive_task != 0) {
+        cancel_task_flag = 1;
+        while (current_exclusive_task != 0) { delay(10); } // 쓰레드가 완전히 종료될 때까지 대기
+    }
+    cancel_task_flag = 0; // 초기화
+
+    pthread_t tid;
+    if (task_type == 1) {
+        pthread_create(&tid, NULL, buzzer_song_thread, NULL);
+        pthread_detach(tid); // 좀비 쓰레드 방지
+    }
+    else if (task_type == 2) {
+        int* start_val = malloc(sizeof(int));
+        *start_val = arg_val;
+        pthread_create(&tid, NULL, seg_countdown_thread, (void*)start_val);
+        pthread_detach(tid);
+    }
+}
+
+int init_tcp_server(int port) {
+    int server_fd;
+    struct sockaddr_in server_addr;
+
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) return -1;
+    int opt = 1;
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(port);
+
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) return -1;
+    if (listen(server_fd, 10) < 0) return -1;
+    return server_fd;
+}
+
+// HTTP 라우팅 및 처리
+void handle_client_request(int client_fd, DeviceState* state) {
+    char buffer[BUFFER_SIZE];
+    memset(buffer, 0, BUFFER_SIZE);
+    
+    if (read(client_fd, buffer, BUFFER_SIZE - 1) <= 0) return;
+
+    // client.c TCP 명령어 처리
+    if (strncmp(buffer, "CMD:", 4) == 0) {
+        char resp[256] = "Command Executed Successfully.";
+        
+        if (strncmp(buffer, "CMD:LED_PWM:", 12) == 0) {
+            int val = atoi(buffer + 12);
+            set_led_brightness(val);
+        }
+        else if (strcmp(buffer, "CMD:BUZ_PLAY") == 0) {
+            start_exclusive_task(1, 0);
+        }
+        else if (strcmp(buffer, "CMD:BUZ_STOP") == 0) {
+            if (current_exclusive_task == 1) cancel_task_flag = 1;
+            set_buzzer(0);
+        }
+        else if (strncmp(buffer, "CMD:SEG_START:", 14) == 0) {
+            int val = atoi(buffer + 14);
+            start_exclusive_task(2, val);
+        }
+        else if (strcmp(buffer, "CMD:STOP_ALL") == 0) {
+            cancel_task_flag = 1;
+            set_led_brightness(0);
+            set_buzzer(0);
+            display_7segment(0);
+        }
+        else if (strcmp(buffer, "CMD:GET_SENSOR") == 0) {
+            // 센서 데이터는 문자열로 예쁘게 포맷팅하여 응답
+            pthread_mutex_lock(&state->mutex);
+            snprintf(resp, sizeof(resp), "현재 온도: %.1f C | 조도 값: %d", 
+                     state->temperature, state->light_intensity);
+            pthread_mutex_unlock(&state->mutex);
+        }
+        else {
+            snprintf(resp, sizeof(resp), "Unknown Command.");
+        }
+        
+        // client.c 로 결과 문자열 전송
+        write(client_fd, resp, strlen(resp));
+    }
+
+    // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
+    else if (strstr(buffer, "GET /api/cmd?") != NULL) {
+        char *ptr;
+        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) set_led_brightness(atoi(ptr + 8));
+        if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
+        if (strstr(buffer, "buzzer=stop") != NULL) {
+            if (current_exclusive_task == 1) cancel_task_flag = 1;
+            set_buzzer(0);
+        }
+        if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
+        if (strstr(buffer, "stop_all=1") != NULL) {
+            cancel_task_flag = 1;
+            set_led_brightness(0); set_buzzer(0); display_7segment(0);
+        }
+        const char* resp = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
+        write(client_fd, resp, strlen(resp));
+    }
+
+    // 웹 브라우저 센서 데이터 요청 처리 (JSON 반환)
+    else if (strstr(buffer, "GET /api/sensor") != NULL) {
+        char resp[256];
+        pthread_mutex_lock(&state->mutex);
+        snprintf(resp, sizeof(resp), 
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
+            "{\"light\":%d, \"temp\":%.1f}", state->light_intensity, state->temperature);
+        pthread_mutex_unlock(&state->mutex);
+        write(client_fd, resp, strlen(resp));
+    }
+    
+    // 웹 브라우저 최초 접속 시 HTML 화면 전송
+    else if (strncmp(buffer, "GET / ", 6) == 0 || strncmp(buffer, "GET /HTTP", 9) == 0) {
+        const char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n";
+        write(client_fd, header, strlen(header));
+
+        FILE *fp = fopen("../client_remote_control.html", "r"); 
+        if (!fp) fp = fopen("client_remote_control.html", "r"); 
+        
+        if (fp != NULL) {
+            char file_buf[1024];
+            size_t bytes_read;
+            while ((bytes_read = fread(file_buf, 1, sizeof(file_buf), fp)) > 0) write(client_fd, file_buf, bytes_read);
+            fclose(fp);
+        } else {
+            const char *err = "HTML file not found.";
+            write(client_fd, err, strlen(err));
+        }
+    }
+}
+
+// epoll 이벤트 루프
+void run_server_loop(int server_fd, DeviceState* state, volatile sig_atomic_t* keep_running) {
+    int epfd = epoll_create1(0);
+    struct epoll_event ev, events[MAX_EVENTS];
+    ev.events = EPOLLIN;
+    ev.data.fd = server_fd;
+    epoll_ctl(epfd, EPOLL_CTL_ADD, server_fd, &ev);
+
+    while (*keep_running) {
+        int nfds = epoll_wait(epfd, events, MAX_EVENTS, 1000);
+        if (nfds == -1) continue;
+
+        for (int i = 0; i < nfds; ++i) {
+            if (events[i].data.fd == server_fd) {
+                struct sockaddr_in client_addr;
+                socklen_t client_len = sizeof(client_addr);
+                int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+                if (client_fd >= 0) {
+                    ev.events = EPOLLIN | EPOLLET;
+                    ev.data.fd = client_fd;
+                    epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
+                }
+            } else {
+                int client_fd = events[i].data.fd;
+                handle_client_request(client_fd, state);
+                close(client_fd); 
+            }
+        }
+    }
+    close(epfd);
+}

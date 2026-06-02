@@ -12,7 +12,7 @@ void set_led_brightness(int duty_cycle) {
     if(!init_flag)
     {
         pinMode(LED_PIN, OUTPUT);
-        softPwmCreate(LED_PIN, 0, 255);
+        softPwmCreate(LED_PIN, 0, 100);
         init_flag = 1;
     }
 
@@ -21,8 +21,8 @@ void set_led_brightness(int duty_cycle) {
         duty_cycle = 0;
     }
     
-    if (duty_cycle > 255){
-        duty_cycle = 255;
+    if (duty_cycle > 100){
+        duty_cycle = 100;
     }
         
 }
