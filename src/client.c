@@ -26,7 +26,7 @@ void* receive_thread(void* arg) {
             printf("메뉴 선택 > "); 
             fflush(stdout); // 버퍼 강제 비우기로 UI 정렬
         } else {
-            printf("\n[알림] 서버와의 연결이 끊어졌습니다. 프로그램을 종료합니다.\n");
+            printf("\n[알림] 서버와의 연결이 끊어졌습니다. ctrl + c 나 0을 입력해주세요.\n");
             keep_running = 0;
             exit(0);
         }
@@ -73,10 +73,10 @@ int main() {
 
     while (keep_running) {
         printf("\n=========================================\n");
-        printf(" 📡 VEDA C-Client 메인 메뉴 (지속 연결)\n");
+        printf(" VEDA C-Client 메인 메뉴\n");
         printf("=========================================\n");
-        printf(" 1. LED 상세 제어 (서브메뉴)\n");
-        printf(" 2. 부저 상세 제어 (서브메뉴)\n");
+        printf(" 1. LED 상세 제어 (서브메뉴: O)\n");
+        printf(" 2. 부저 상세 제어 (서브메뉴: O)\n");
         printf(" 3. 7-Segment 카운트다운 시작\n");
         printf(" 4. 센서 데이터 (온도/조도) 확인\n");
         printf(" 5. 모든 장치 긴급 정지\n");

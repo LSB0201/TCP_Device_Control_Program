@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     // 데몬화 처리
     if (daemon_mode) {
         if (daemon(0, 0) == -1) {
-            perror("Daemonization failed");
+            perror("Daemon failed");
             exit(EXIT_FAILURE);
         }
     } else {

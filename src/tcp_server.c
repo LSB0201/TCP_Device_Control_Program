@@ -60,6 +60,13 @@ int handle_client_request(int client_fd, DeviceState* state) {
     int n = read(client_fd, buffer, BUFFER_SIZE - 1);
     if (n <= 0) return 0; // 상대방이 소켓을 닫았거나 에러 시 0 반환 (연결 종료)
 
+    // 디버그용
+    printf("\n소켓 FD(%d), %d 바이트\n", client_fd, n);
+    printf("-----------------------------------------\n");
+    printf("%s\n", buffer);
+    printf("-----------------------------------------\n");
+    fflush(stdout); // 터미널 출력 버퍼 즉시 비우기
+
     // client.c TCP 명령어 처리
     if (strncmp(buffer, "CMD:", 4) == 0) {
         char resp[256] = "Command Executed Successfully.";
@@ -87,7 +94,7 @@ int handle_client_request(int client_fd, DeviceState* state) {
         }
         else if (strcmp(buffer, "CMD:GET_SENSOR") == 0) {
             pthread_mutex_lock(&state->mutex);
-            snprintf(resp, sizeof(resp), "현재 온도: %.1f C | 조도 값: %d", 
+            snprintf(resp, sizeof(resp), "현재 온도: %.1f C | 조도 값: %d",
                      state->temperature, state->light_intensity);
             pthread_mutex_unlock(&state->mutex);
         }
@@ -129,7 +136,7 @@ int handle_client_request(int client_fd, DeviceState* state) {
         char resp[256];
         pthread_mutex_lock(&state->mutex);
 
-        snprintf(resp, sizeof(resp), 
+        snprintf(resp, sizeof(resp),
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
             "{\"light\":%d, \"temp\":%.1f}", state->light_intensity, state->temperature);
 
@@ -145,8 +152,8 @@ int handle_client_request(int client_fd, DeviceState* state) {
         const char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n";
         if (write(client_fd, header, strlen(header)) < 0) return 0;
 
-        FILE *fp = fopen("../client_remote_control.html", "r"); 
-        if (!fp) fp = fopen("client_remote_control.html", "r"); 
+        FILE *fp = fopen("../client_remote_control.html", "r");
+        if (!fp) fp = fopen("client_remote_control.html", "r");
         
         if (fp != NULL) {
             char file_buf[1024];
