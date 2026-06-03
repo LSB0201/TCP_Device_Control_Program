@@ -95,7 +95,9 @@ void handle_client_request(int client_fd, DeviceState* state) {
         }
         
         // client.c 로 결과 문자열 전송
-        write(client_fd, resp, strlen(resp));
+        if (write(client_fd, resp, strlen(resp)) < 0) {
+            perror("TCP Write Error");
+        }
     }
 
     // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
@@ -115,7 +117,9 @@ void handle_client_request(int client_fd, DeviceState* state) {
             hw.display_7segment(0);
         }
         const char* resp = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
-        write(client_fd, resp, strlen(resp));
+        if (write(client_fd, resp, strlen(resp)) < 0) {
+            perror("AJAX Write Error");
+        }
     }
 
     // 웹 브라우저 센서 데이터 요청 처리 (JSON 반환)
@@ -128,13 +132,17 @@ void handle_client_request(int client_fd, DeviceState* state) {
             "{\"light\":%d, \"temp\":%.1f}", state->light_intensity, state->temperature);
 
         pthread_mutex_unlock(&state->mutex);
-        write(client_fd, resp, strlen(resp));
+        if (write(client_fd, resp, strlen(resp)) < 0) {
+            perror("Sensor Data Write Error");
+        }
     }
 
     // 웹 브라우저 최초 접속 시 HTML 화면 전송
     else if (strncmp(buffer, "GET / ", 6) == 0 || strncmp(buffer, "GET /HTTP", 9) == 0) {
         const char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n";
-        write(client_fd, header, strlen(header));
+        if (write(client_fd, header, strlen(header)) < 0) {
+            perror("Header Write Error");
+        }
 
         FILE *fp = fopen("../client_remote_control.html", "r"); 
         if (!fp) fp = fopen("client_remote_control.html", "r"); 
@@ -142,11 +150,17 @@ void handle_client_request(int client_fd, DeviceState* state) {
         if (fp != NULL) {
             char file_buf[1024];
             size_t bytes_read;
-            while ((bytes_read = fread(file_buf, 1, sizeof(file_buf), fp)) > 0) write(client_fd, file_buf, bytes_read);
+
+            while ((bytes_read = fread(file_buf, 1, sizeof(file_buf), fp)) > 0) {
+                if (write(client_fd, file_buf, bytes_read) < 0)
+                    break;
+            }
             fclose(fp);
         } else {
             const char *err = "HTML file not found.";
-            write(client_fd, err, strlen(err));
+            if (write(client_fd, err, strlen(err)) < 0) {
+                perror("Error Page Write Error");
+            }
         }
     }
 }

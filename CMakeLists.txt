@@ -32,6 +32,9 @@ if(TARGET_BOARD STREQUAL "PI")
     # 라즈베리파이용 서버 본체 
     add_executable(remote_server src/main.c src/tcp_server.c)
     target_link_libraries(remote_server PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${WIRINGPI_LIBRARIES})
+    
+    # 메인 실행 파일의 전역 변수를 .so 파일과 공유 허용
+    target_link_options(remote_server PRIVATE -rdynamic)
 
 else()
     message(STATUS "CMake: 우분투 클라이언트 빌드")
