@@ -1,7 +1,7 @@
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 
-#include "hardware.h"
+#include "common.h"
 
 #define P_ADDR 0x48
 #define CH_LIGHT 0

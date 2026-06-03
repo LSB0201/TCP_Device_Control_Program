@@ -1,7 +1,7 @@
 #include <wiringPi.h>
 #include <softPwm.h>
 
-#include "hardware.h"
+#include "common.h"
 
 #define LED_PIN 1 // WiringPi 1번 (BCM 18)
 

@@ -1,5 +1,3 @@
-#include "server.h"
-#include "hardware.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -7,6 +5,9 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <wiringPi.h>
+
+#include "server.h"
+#include "hardware.h"
 
 // 이전 작업 취소 및 쓰레드 교체 함수
 void start_exclusive_task(int task_type, int arg_val) {
@@ -20,14 +21,14 @@ void start_exclusive_task(int task_type, int arg_val) {
     pthread_t tid;
     if (task_type == 1) {
         // buzzer.c에 있는 함수 호출
-        pthread_create(&tid, NULL, buzzer_song_thread, NULL);
+        pthread_create(&tid, NULL, hw.buzzer_song_thread, NULL);
         pthread_detach(tid); 
     }
     else if (task_type == 2) {
         // seg7.c에 있는 함수 호출
         int* start_val = malloc(sizeof(int));
         *start_val = arg_val;
-        pthread_create(&tid, NULL, seg_countdown_thread, (void*)start_val);
+        pthread_create(&tid, NULL, hw.seg_countdown_thread, (void*)start_val);
         pthread_detach(tid);
     }
 }
@@ -64,14 +65,14 @@ void handle_client_request(int client_fd, DeviceState* state) {
         
         if (strncmp(buffer, "CMD:LED_PWM:", 12) == 0) {
             int val = atoi(buffer + 12);
-            set_led_brightness(val);
+            hw.set_led_brightness(val);
         }
         else if (strcmp(buffer, "CMD:BUZ_PLAY") == 0) {
             start_exclusive_task(1, 0);
         }
         else if (strcmp(buffer, "CMD:BUZ_STOP") == 0) {
             if (current_exclusive_task == 1) cancel_task_flag = 1;
-            set_buzzer(0);
+            hw.set_buzzer(0);
         }
         else if (strncmp(buffer, "CMD:SEG_START:", 14) == 0) {
             int val = atoi(buffer + 14);
@@ -79,9 +80,9 @@ void handle_client_request(int client_fd, DeviceState* state) {
         }
         else if (strcmp(buffer, "CMD:STOP_ALL") == 0) {
             cancel_task_flag = 1;
-            set_led_brightness(0);
-            set_buzzer(0);
-            display_7segment(0);
+            hw.set_led_brightness(0);
+            hw.set_buzzer(0);
+            hw.display_7segment(0);
         }
         else if (strcmp(buffer, "CMD:GET_SENSOR") == 0) {
             pthread_mutex_lock(&state->mutex);
@@ -100,7 +101,7 @@ void handle_client_request(int client_fd, DeviceState* state) {
     // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
     else if (strstr(buffer, "GET /api/cmd?") != NULL) {
         char *ptr;
-        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) set_led_brightness(atoi(ptr + 8));
+        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) hw.set_led_brightness(atoi(ptr + 8));
         if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
         if (strstr(buffer, "buzzer=stop") != NULL) {
             if (current_exclusive_task == 1) cancel_task_flag = 1;
@@ -109,7 +110,9 @@ void handle_client_request(int client_fd, DeviceState* state) {
         if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
-            set_led_brightness(0); set_buzzer(0); display_7segment(0);
+            hw.set_led_brightness(0);
+            hw.set_buzzer(0);
+            hw.display_7segment(0);
         }
         const char* resp = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
         write(client_fd, resp, strlen(resp));

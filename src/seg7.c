@@ -1,5 +1,6 @@
 #include <wiringPi.h>
 
+#include "common.h"
 #include "hardware.h"
 
 // BCD 입력을 위한 4개의 핀 배열 (WiringPi 핀 번호 기준)
@@ -42,16 +43,16 @@ void* seg_countdown_thread(void* arg) {
         }
     }
 
-    display_7segment(0);
+   display_7segment(0);
 
+    // 정상 종료 시 부저 1초 울림
     if (!cancel_task_flag) {
-        set_buzzer(1);
+        if (hw.set_buzzer) hw.set_buzzer(1); 
         delay(1000);
-        set_buzzer(0);
+        if (hw.set_buzzer) hw.set_buzzer(0);
     }
 
-    if (current_exclusive_task == 2)
-        current_exclusive_task = 0;
+    if (current_exclusive_task == 2) current_exclusive_task = 0;
 
     return NULL;
 }
