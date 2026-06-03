@@ -33,6 +33,6 @@ extern HardwareAPI hw; // 전역 구조체 선언, main.c에서 초기화
 
 // 동적 로딩 관련 함수
 int load_hardware_library(void);
-void close_hardware_library(void);
+void cleanup_hardware(void);
 
 #endif // HARDWARE_H

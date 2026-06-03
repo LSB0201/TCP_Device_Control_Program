@@ -53,11 +53,12 @@ int init_tcp_server(int port) {
 }
 
 // HTTP 라우팅 및 처리
-void handle_client_request(int client_fd, DeviceState* state) {
+int handle_client_request(int client_fd, DeviceState* state) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
     
-    if (read(client_fd, buffer, BUFFER_SIZE - 1) <= 0) return;
+    int n = read(client_fd, buffer, BUFFER_SIZE - 1);
+    if (n <= 0) return 0; // 상대방이 소켓을 닫았거나 에러 시 0 반환 (연결 종료)
 
     // client.c TCP 명령어 처리
     if (strncmp(buffer, "CMD:", 4) == 0) {
@@ -94,22 +95,23 @@ void handle_client_request(int client_fd, DeviceState* state) {
             snprintf(resp, sizeof(resp), "Unknown Command.");
         }
         
-        // client.c 로 결과 문자열 전송
-        if (write(client_fd, resp, strlen(resp)) < 0) {
-            perror("TCP Write Error");
-        }
+        if (write(client_fd, resp, strlen(resp)) < 0) return 0;
+        return 1; // Client.c는 지속 연결이므로 소켓을 유지(1 반환)
     }
 
     // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
     else if (strstr(buffer, "GET /api/cmd?") != NULL) {
         char *ptr;
         if ((ptr = strstr(buffer, "led_pwm=")) != NULL) hw.set_led_brightness(atoi(ptr + 8));
+
         if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
+
         if (strstr(buffer, "buzzer=stop") != NULL) {
             if (current_exclusive_task == 1) cancel_task_flag = 1;
             hw.set_buzzer(0);
         }
         if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
+
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
             hw.set_led_brightness(0);
@@ -117,9 +119,9 @@ void handle_client_request(int client_fd, DeviceState* state) {
             hw.display_7segment(0);
         }
         const char* resp = "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
-        if (write(client_fd, resp, strlen(resp)) < 0) {
-            perror("AJAX Write Error");
-        }
+        if (write(client_fd, resp, strlen(resp)) < 0) return 0;
+
+        return 0;
     }
 
     // 웹 브라우저 센서 데이터 요청 처리 (JSON 반환)
@@ -132,17 +134,16 @@ void handle_client_request(int client_fd, DeviceState* state) {
             "{\"light\":%d, \"temp\":%.1f}", state->light_intensity, state->temperature);
 
         pthread_mutex_unlock(&state->mutex);
-        if (write(client_fd, resp, strlen(resp)) < 0) {
-            perror("Sensor Data Write Error");
-        }
+
+        if (write(client_fd, resp, strlen(resp)) < 0) return 0;
+
+        return 0;
     }
 
     // 웹 브라우저 최초 접속 시 HTML 화면 전송
     else if (strncmp(buffer, "GET / ", 6) == 0 || strncmp(buffer, "GET /HTTP", 9) == 0) {
         const char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nConnection: close\r\n\r\n";
-        if (write(client_fd, header, strlen(header)) < 0) {
-            perror("Header Write Error");
-        }
+        if (write(client_fd, header, strlen(header)) < 0) return 0;
 
         FILE *fp = fopen("../client_remote_control.html", "r"); 
         if (!fp) fp = fopen("client_remote_control.html", "r"); 
@@ -150,19 +151,18 @@ void handle_client_request(int client_fd, DeviceState* state) {
         if (fp != NULL) {
             char file_buf[1024];
             size_t bytes_read;
-
             while ((bytes_read = fread(file_buf, 1, sizeof(file_buf), fp)) > 0) {
-                if (write(client_fd, file_buf, bytes_read) < 0)
-                    break;
+                if (write(client_fd, file_buf, bytes_read) < 0) break;
             }
             fclose(fp);
-        } else {
-            const char *err = "HTML file not found.";
-            if (write(client_fd, err, strlen(err)) < 0) {
-                perror("Error Page Write Error");
-            }
         }
+        else {
+            const char *err = "HTML file not found.";
+            if (write(client_fd, err, strlen(err)) < 0) return 0;
+        }
+        return 0;
     }
+    return 0;
 }
 
 // epoll 이벤트 루프
@@ -184,15 +184,19 @@ void run_server_loop(int server_fd, DeviceState* state, volatile sig_atomic_t* k
 
                 int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
                 if (client_fd >= 0) {
-                    ev.events = EPOLLIN | EPOLLET;
+                    // 지속적인 스트림 체크를 위해 Level Triggered(EPOLLIN) 방식으로 안정성 확보
+                    ev.events = EPOLLIN; 
                     ev.data.fd = client_fd;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
                 }
             }
             else {
                 int client_fd = events[i].data.fd;
-                handle_client_request(client_fd, state);
-                close(client_fd); 
+                // handle_client_request 결과가 0(종료 요청)일 때만 epoll에서 지우고 소켓을 닫음
+                if (handle_client_request(client_fd, state) == 0) {
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, NULL);
+                    close(client_fd);
+                }
             }
         }
     }

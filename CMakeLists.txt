@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(VedaRemoteControl C)
 
 set(CMAKE_C_STANDARD 99)
 add_compile_options(-Wall -Wextra -O2)
+add_definitions(-D_POSIX_C_SOURCE=200809L)
 
 include_directories(include)
 find_package(Threads REQUIRED)

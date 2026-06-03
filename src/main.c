@@ -1,5 +1,6 @@
 #include <wiringPi.h>
 #include <dlfcn.h>
+#include <signal.h>
 
 #include "common.h"
 #include "hardware.h"
@@ -72,6 +73,13 @@ void cleanup_hardware(void) {
 int main(int argc, char *argv[]) {
     int daemon_mode = 0;
     pthread_t sensor_tid;
+
+    sigset_t mask;
+
+    // SIGINT만 허용
+    sigfillset(&mask);
+    sigdelset(&mask, SIGINT);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
 
     // 실행 인자 파싱 (데몬 모드 확인) <- 디버그용 추후 삭제
     if (argc > 1 && strcmp(argv[1], "-d") == 0) {
