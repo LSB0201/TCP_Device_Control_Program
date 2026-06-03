@@ -4,10 +4,6 @@ project(VedaRemoteControl C)
 set(CMAKE_C_STANDARD 99)
 add_compile_options(-Wall -Wextra -O2)
 
-# 출력 디렉토리 일괄 설정
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
-
 include_directories(include)
 find_package(Threads REQUIRED)
 
@@ -15,9 +11,9 @@ find_package(Threads REQUIRED)
 set(TARGET_BOARD "CLIENT" CACHE STRING "Build target: CLIENT(Ubuntu) or PI(Raspberry Pi)")
 
 if(TARGET_BOARD STREQUAL "PI")
-    message(STATUS "🚀 [크로스 컴파일 모드] 라즈베리파이 서버 및 센서 라이브러리 빌드")
+    message(STATUS "CMake: 라즈베리파이 서버 및 센서 라이브러리 빌드")
 
-    # (주의) 우분투 환경의 크로스 컴파일러 경로에 wiringPi 라이브러리가 세팅되어 있어야 합니다.
+    # 우분투 환경의 크로스 컴파일러 경로에 wiringPi 라이브러리가 세팅되어 있어야 합니다.
     set(WIRINGPI_LIBRARIES wiringPi)
 
     # 1. 하드웨어 장치별 .so 모듈 
@@ -38,7 +34,7 @@ if(TARGET_BOARD STREQUAL "PI")
     target_link_libraries(remote_server PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${WIRINGPI_LIBRARIES})
 
 else()
-    message(STATUS "💻 [네이티브 컴파일 모드] 우분투 클라이언트 빌드")
+    message(STATUS "CMake: 우분투 클라이언트 빌드")
     
     # 3. 우분투용 클라이언트 프로그램
     add_executable(remote_client src/client.c)

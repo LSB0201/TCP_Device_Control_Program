@@ -23,11 +23,17 @@ void send_command_to_server(const char *cmd) {
         return;
     }
 
-    write(sock, cmd, strlen(cmd));
+    if (write(sock, cmd, strlen(cmd)) < 0) {
+        printf("[오류] 명령 전송 실패\n");
+    }
 
     char buf[256] = {0};
-    read(sock, buf, sizeof(buf) - 1);
-    printf("[서버 응답] %s\n", buf);
+    if (read(sock, buf, sizeof(buf) - 1) > 0) {
+        printf("[서버 응답] %s\n", buf);
+    }
+    else {
+        printf("[오류] 서버 응답을 읽지 못했습니다.\n");
+    }
 
     close(sock); 
 }
@@ -39,7 +45,7 @@ int main() {
 
     while (1) {
         printf("\n=========================================\n");
-        printf(" 📡 VEDA C-Client 메인 메뉴\n");
+        printf(" VEDA C-Client 메인 메뉴\n");
         printf("=========================================\n");
         printf(" 1. LED 상세 제어 (서브메뉴)\n");
         printf(" 2. 부저 상세 제어 (서브메뉴)\n");
@@ -59,7 +65,7 @@ int main() {
             case 1:
                 while(1) {
                     printf("\n[LED 제어] on / off / low / mid / high / exit 입력 > ");
-                    scanf("%s", input_str);
+                    if (scanf("%19s", input_str) != 1) continue;    // 버퍼 오버플로우 방지
 
                     if (strcmp(input_str, "exit") == 0) {
                         printf("메인 메뉴로 복귀합니다.\n");
@@ -86,7 +92,7 @@ int main() {
             case 2:
                 while(1) {
                     printf("\n[부저 제어] 노래 재생(on) / 중단(off) / exit 입력 > ");
-                    scanf("%s", input_str);
+                    if (scanf("%19s", input_str) != 1) continue;    // 버퍼 오버플로우 방지
 
                     if (strcmp(input_str, "exit") == 0) {
                         printf("메인 메뉴로 복귀합니다.\n");
@@ -107,7 +113,12 @@ int main() {
             case 3:
                 printf("\n시작할 숫자 입력 (0~9): ");
                 int num;
-                scanf("%d", &num);
+                // scanf 예외 처리
+                if (scanf("%d", &num) != 1) {
+                    while(getchar() != '\n'); // 잘못된 문자 입력 시 버퍼 비우기
+                    printf("숫자를 올바르게 입력해주세요.\n");
+                    break;
+                }
                 snprintf(cmd, sizeof(cmd), "CMD:SEG_START:%d", num);
                 send_command_to_server(cmd);
                 break;

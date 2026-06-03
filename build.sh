@@ -18,7 +18,7 @@ elif [ "$1" == "server" ]; then
 
 elif [ "$1" == "clean" ]; then
     echo "기존 빌드 파일들을 삭제합니다..."
-    rm -rf build_client build_pi
+    rm -rf build_client build_server
     echo "삭제 완료!"
 
 else
