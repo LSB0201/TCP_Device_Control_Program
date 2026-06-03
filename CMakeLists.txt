@@ -18,23 +18,27 @@ find_package(Threads REQUIRED)
 set(WIRINGPI_LIBRARIES wiringPi)
 
 
-# 라이브러리 빌드 (하드웨어 제어 및 네트워크 공통 모듈)
-add_library(remote_core STATIC
-    src/tcp_server.c
-    src/led.c
-    src/buzzer.c
-    src/i2c_light_temper.c
-    src/seg7.c
-)
+# ED 모듈: libled_control.so 생성
+add_library(led_control SHARED src/led.c)
+target_link_libraries(led_control PRIVATE ${WIRINGPI_LIBRARIES})
 
-# 라이브러리에 필요한 의존성 링크
-target_link_libraries(remote_core PRIVATE ${WIRINGPI_LIBRARIES} Threads::Threads)
+# 부저 모듈: libbuzzer_control.so 생성
+add_library(buzzer_control SHARED src/buzzer.c)
+target_link_libraries(buzzer_control PRIVATE ${WIRINGPI_LIBRARIES})
 
-# 서버 실행 파일 생성 (main.c) - 라즈베리파이에서 실행
-add_executable(remote_server src/main.c)
-target_link_libraries(remote_server PRIVATE remote_core ${WIRINGPI_LIBRARIES} Threads::Threads)
+# 조도/온도 센서 모듈: libi2c_control.so 생성
+add_library(i2c_control SHARED src/i2c_light_temper.c)
+target_link_libraries(i2c_control PRIVATE ${WIRINGPI_LIBRARIES})
+
+# 7세그먼트 모듈: libseg7_control.so 생성
+add_library(seg7_control SHARED src/seg7.c)
+target_link_libraries(seg7_control PRIVATE ${WIRINGPI_LIBRARIES})
 
 
-# 클라이언트 실행 파일 생성 (client.c) - 우분투 실행
+# 서버 실행 파일 생성 (main.c 와 tcp_server.c 포함) - 라즈베리파이에서 실행
+add_executable(remote_server src/main.c src/tcp_server.c)
+target_link_libraries(remote_server PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${WIRINGPI_LIBRARIES})
+
+# 클라이언트 실행 파일 생성 (client.c) - 우분투 리눅스에서 실행
 add_executable(remote_client src/client.c)
 target_link_libraries(remote_client PRIVATE Threads::Threads)
