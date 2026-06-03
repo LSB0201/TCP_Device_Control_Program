@@ -1,44 +1,46 @@
 cmake_minimum_required(VERSION 3.10)
 project(VedaRemoteControl C)
 
-# C 표준 및 컴파일 옵션 설정
 set(CMAKE_C_STANDARD 99)
 add_compile_options(-Wall -Wextra -O2)
 
-# 실행 파일이 저장될 경로 지정: 프로젝트_루트/build
+# 출력 디렉토리 일괄 설정
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 
-# 헤더 파일 디렉토리 지정
 include_directories(include)
-
-# 필수 라이브러리(POSIX 쓰레드) 로드
 find_package(Threads REQUIRED)
 
-# 라즈베리파이 외장 하드웨어 제어 라이브러리 명시
-set(WIRINGPI_LIBRARIES wiringPi)
+# 빌드 타겟 분리 스위치 (기본값: CLIENT)
+set(TARGET_BOARD "CLIENT" CACHE STRING "Build target: CLIENT(Ubuntu) or PI(Raspberry Pi)")
 
+if(TARGET_BOARD STREQUAL "PI")
+    message(STATUS "🚀 [크로스 컴파일 모드] 라즈베리파이 서버 및 센서 라이브러리 빌드")
 
-# ED 모듈: libled_control.so 생성
-add_library(led_control SHARED src/led.c)
-target_link_libraries(led_control PRIVATE ${WIRINGPI_LIBRARIES})
+    # (주의) 우분투 환경의 크로스 컴파일러 경로에 wiringPi 라이브러리가 세팅되어 있어야 합니다.
+    set(WIRINGPI_LIBRARIES wiringPi)
 
-# 부저 모듈: libbuzzer_control.so 생성
-add_library(buzzer_control SHARED src/buzzer.c)
-target_link_libraries(buzzer_control PRIVATE ${WIRINGPI_LIBRARIES})
+    # 1. 하드웨어 장치별 .so 모듈 
+    add_library(led_control SHARED src/led.c)
+    target_link_libraries(led_control PRIVATE ${WIRINGPI_LIBRARIES})
 
-# 조도/온도 센서 모듈: libi2c_control.so 생성
-add_library(i2c_control SHARED src/i2c_light_temper.c)
-target_link_libraries(i2c_control PRIVATE ${WIRINGPI_LIBRARIES})
+    add_library(buzzer_control SHARED src/buzzer.c)
+    target_link_libraries(buzzer_control PRIVATE ${WIRINGPI_LIBRARIES})
 
-# 7세그먼트 모듈: libseg7_control.so 생성
-add_library(seg7_control SHARED src/seg7.c)
-target_link_libraries(seg7_control PRIVATE ${WIRINGPI_LIBRARIES})
+    add_library(i2c_control SHARED src/i2c_light_temper.c)
+    target_link_libraries(i2c_control PRIVATE ${WIRINGPI_LIBRARIES})
 
+    add_library(seg7_control SHARED src/seg7.c)
+    target_link_libraries(seg7_control PRIVATE ${WIRINGPI_LIBRARIES})
 
-# 서버 실행 파일 생성 (main.c 와 tcp_server.c 포함) - 라즈베리파이에서 실행
-add_executable(remote_server src/main.c src/tcp_server.c)
-target_link_libraries(remote_server PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${WIRINGPI_LIBRARIES})
+    # 라즈베리파이용 서버 본체 
+    add_executable(remote_server src/main.c src/tcp_server.c)
+    target_link_libraries(remote_server PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${WIRINGPI_LIBRARIES})
 
-# 클라이언트 실행 파일 생성 (client.c) - 우분투 리눅스에서 실행
-add_executable(remote_client src/client.c)
-target_link_libraries(remote_client PRIVATE Threads::Threads)
+else()
+    message(STATUS "💻 [네이티브 컴파일 모드] 우분투 클라이언트 빌드")
+    
+    # 3. 우분투용 클라이언트 프로그램
+    add_executable(remote_client src/client.c)
+    target_link_libraries(remote_client PRIVATE Threads::Threads)
+endif()
