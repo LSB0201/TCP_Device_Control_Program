@@ -105,7 +105,7 @@ void handle_client_request(int client_fd, DeviceState* state) {
         if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
         if (strstr(buffer, "buzzer=stop") != NULL) {
             if (current_exclusive_task == 1) cancel_task_flag = 1;
-            set_buzzer(0);
+            hw.set_buzzer(0);
         }
         if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
         if (strstr(buffer, "stop_all=1") != NULL) {
@@ -122,9 +122,11 @@ void handle_client_request(int client_fd, DeviceState* state) {
     else if (strstr(buffer, "GET /api/sensor") != NULL) {
         char resp[256];
         pthread_mutex_lock(&state->mutex);
+
         snprintf(resp, sizeof(resp), 
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n"
             "{\"light\":%d, \"temp\":%.1f}", state->light_intensity, state->temperature);
+
         pthread_mutex_unlock(&state->mutex);
         write(client_fd, resp, strlen(resp));
     }

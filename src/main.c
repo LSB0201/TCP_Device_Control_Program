@@ -58,9 +58,9 @@ int load_hardware_library(void) {
 
 // 전체 하드웨어 종료
 void cleanup_hardware(void) {
-    set_led_brightness(0);
-    set_buzzer(0);
-    display_7segment(0);
+    if (hw.set_led_brightness) hw.set_led_brightness(0);
+    if (hw.set_buzzer) hw.set_buzzer(0);
+    if (hw.display_7segment) hw.display_7segment(0);
 
     // 각각의 라이브러리 핸들 닫기
     if (led_lib_handle) dlclose(led_lib_handle);

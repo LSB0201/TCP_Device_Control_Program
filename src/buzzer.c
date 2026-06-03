@@ -1,4 +1,5 @@
 #include <wiringPi.h>
+#include <softTone.h>
 
 #include "common.h"
 
@@ -17,13 +18,15 @@ void set_buzzer(int state) {
     // init_flag를 사용해 최초 한 번만 softPwm 초기화
     if(!init_flag)
     {
-        pinMode(BUZZER_PIN, OUTPUT);
-        digitalWrite(BUZZER_PIN, LOW); // 초기 값 off
+        softToneCreate(BUZZER_PIN); 
         init_flag = 1;
     }
 
-    // state가 1이면 키고, 0이면 끄기
-    digitalWrite(BUZZER_PIN, state ? HIGH : LOW);
+    if (state) {
+        softToneWrite(BUZZER_PIN, 800); // 소리 on
+    } else {
+        softToneWrite(BUZZER_PIN, 0); // 소리 off
+    }
 }
 
 // 노래 재생용 쓰래드 함수

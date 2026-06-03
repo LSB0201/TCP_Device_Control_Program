@@ -7,7 +7,7 @@
 #define CH_LIGHT 0
 #define CH_TEMP 1
 
-static read_pcf_adc(int fd, int channel) {
+static int read_pcf_adc(int fd, int channel) {
     wiringPiI2CWrite(fd, channel);
 
     wiringPiI2CRead(fd); // 쓰래기 값 버리기

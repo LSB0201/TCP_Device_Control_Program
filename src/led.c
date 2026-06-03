@@ -1,6 +1,5 @@
 #include <wiringPi.h>
 #include <softPwm.h>
-#include <wiringPi.h>
 
 #include "common.h"
 

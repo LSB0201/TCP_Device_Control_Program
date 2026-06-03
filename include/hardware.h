@@ -3,9 +3,8 @@
 
 #include "common.h"
 
-// 하드웨어 초기화 및 해제
-int init_hardware(void);         // WiringPi 및 핀 초기화
-void cleanup_hardware(void);     // 종료 시 모든 장치 OFF
+// 종료 시 모든 장치 OFF
+void cleanup_hardware(void);
 
 // 출력 장치 제어
 void set_led_brightness(int duty_cycle); // LED 밝기 제어 (0 ~ 100)
