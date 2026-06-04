@@ -19,6 +19,7 @@ typedef struct {
     int led_brightness;     // LED 현재 밝기 (0~255)
     int buzzer_status;      // 부저 상태 (0: OFF, 1: ON)
     int current_seg_num;    // 7세그먼트 현재 출력 숫자
+    int auto_led_mode;      // 조도 센서를 통한 LED 제어 모드 현황
     pthread_mutex_t mutex;  // 쓰레드 동기화를 위한 뮤텍스
 } DeviceState;
 

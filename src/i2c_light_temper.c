@@ -58,9 +58,11 @@ void* i2c_sensor_thread(void* arg) {
         state->light_intensity = raw_light;
         state->temperature = convert_to_celsius(raw_temp);
 
+        int current_auto_mode = state->auto_led_mode; // 뮤텍스 안에서 모드 상태 빼오기
+
         pthread_mutex_unlock(&state->mutex);
 
-        if (state->auto_led_mode == 1) {
+        if (current_auto_mode == 1) {
             if (raw_light > 180) { 
                 if (hw.set_led_brightness) hw.set_led_brightness(100);
             } else {

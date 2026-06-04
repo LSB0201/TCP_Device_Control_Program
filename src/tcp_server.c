@@ -114,7 +114,10 @@ int handle_client_request(int client_fd, DeviceState* state) {
     // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
     else if (strstr(buffer, "GET /api/cmd?") != NULL) {
         char *ptr;
-        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) hw.set_led_brightness(atoi(ptr + 8));
+        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) {
+            state->auto_led_mode = 0;
+            hw.set_led_brightness(atoi(ptr + 8));
+        }
 
         if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
 
@@ -128,6 +131,7 @@ int handle_client_request(int client_fd, DeviceState* state) {
 
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
+            state->auto_led_mode = 0;
             hw.set_led_brightness(0);
             hw.set_buzzer(0);
             hw.display_7segment(0);
