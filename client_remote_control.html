@@ -41,15 +41,10 @@
             fetch('/api/cmd?' + cmd).catch(err => console.error(err));
         }
 
-        // LED 전원 및 밝기 제어 (tcp_server.c의 led_pwm 명령어로 통일)
-        let ledState = false;
         function setLedPower(state) {
-            ledState = state;
-            // On 이면 100%, Off 이면 0% 전송
             sendCommand('led_pwm=' + (state ? '100' : '0'));
         }
         function setLedBrightness(val) {
-            ledState = true; 
             sendCommand('led_pwm=' + val);
         }
 
@@ -66,10 +61,14 @@
                 if (lightTimer) return;
                 fetchSensor('light'); 
                 lightTimer = setInterval(() => fetchSensor('light'), 3000);
+                
+                sendCommand('auto_led=1'); 
             } else {
                 clearInterval(lightTimer);
                 lightTimer = null;
                 document.getElementById('light_val').innerText = ''; 
+                
+                sendCommand('auto_led=0'); 
             }
         }
 
@@ -112,8 +111,7 @@
                     <p>LED 전원</p>
                     <button class="btn-off" onclick="setLedPower(false)">Off</button>
                     <button class="btn-on" onclick="setLedPower(true)">On</button>
-                    <button class="btn-blue" onclick="sendCommand('auto_led=1')">조도 자동 연동</button>
-                </div>
+                    </div>
                 <div>
                     <p>LED 밝기 조절</p>
                     <button class="btn-blue" onclick="setLedBrightness(30)">최저</button>

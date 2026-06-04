@@ -87,9 +87,6 @@ int handle_client_request(int client_fd, DeviceState* state) {
             int val = atoi(buffer + 14);
             start_exclusive_task(2, val);
         }
-        else if (strcmp(buffer, "CMD:AUTO_LED_ON") == 0) {
-            state->auto_led_mode = 1; // 자동 모드 켜기
-        }
         else if (strcmp(buffer, "CMD:STOP_ALL") == 0) {
             cancel_task_flag = 1;
             state->auto_led_mode = 0; 
@@ -101,6 +98,7 @@ int handle_client_request(int client_fd, DeviceState* state) {
             pthread_mutex_lock(&state->mutex);
             snprintf(resp, sizeof(resp), "현재 온도: %.1f C | 조도 값: %d",
                      state->temperature, state->light_intensity);
+            state->auto_led_mode = 1; // 자동 모드 켜기
             pthread_mutex_unlock(&state->mutex);
         }
         else {
@@ -127,7 +125,10 @@ int handle_client_request(int client_fd, DeviceState* state) {
         }
         if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
 
-        if (strstr(buffer, "auto_led=1") != NULL) state->auto_led_mode = 1;
+        if (strstr(buffer, "auto_led=0") != NULL) {
+            state->auto_led_mode = 0;
+            hw.set_led_brightness(0); 
+        }
 
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
