@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "common.h"
+#include "hardware.h"
 
 #define P_ADDR 0x48
 #define CH_LIGHT 0
@@ -58,6 +59,15 @@ void* i2c_sensor_thread(void* arg) {
         state->temperature = convert_to_celsius(raw_temp);
 
         pthread_mutex_unlock(&state->mutex);
+
+        if (raw_light > 180) { 
+            // 빛이 감지되지 않음 (어두움) -> LED ON (최대 밝기)
+            if (hw.set_led_brightness) hw.set_led_brightness(100);
+        }
+        else {
+            // 빛이 감지됨 (밝음) -> LED OFF
+            if (hw.set_led_brightness) hw.set_led_brightness(0);
+        }
 
         delay(500); // CPU 점유율을 위한 딜레이
     }
