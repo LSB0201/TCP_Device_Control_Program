@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     // 데몬화 처리
     if (daemon_mode) {
-        if (daemon(0, 0) == -1) {
+        if (daemon(1, 0) == -1) {
             perror("Daemon failed");
             exit(EXIT_FAILURE);
         }
