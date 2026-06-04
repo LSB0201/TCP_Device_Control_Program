@@ -110,7 +110,10 @@ int main() {
                     } 
                     else if (strcmp(input_str, "mid") == 0) {
                         if (write(sock, "CMD:LED_PWM:60", 14) < 0) break;
-                    } 
+                    }
+                    else if (strcmp(input_str, "auto") == 0) {
+                        if (write(sock, "CMD:AUTO_LED_ON", 15) < 0) break;
+                    }
                     else {
                         printf("잘못된 입력입니다. 다시 입력해주세요.\n");
                     }

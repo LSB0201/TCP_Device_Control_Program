@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
     device_state.led_brightness = 0;
     device_state.buzzer_status = 0;
     device_state.current_seg_num = 0;
+    device_state.auto_led_mode = 0;
 
     // 하드웨어 초기화(WiringPi)
     if (wiringPiSetup() == -1) exit(EXIT_FAILURE);

@@ -72,6 +72,7 @@ int handle_client_request(int client_fd, DeviceState* state) {
         char resp[256] = "Command Executed Successfully.";
         
         if (strncmp(buffer, "CMD:LED_PWM:", 12) == 0) {
+            state->auto_led_mode = 0; // 수동 제어 시 자동 모드 해제
             int val = atoi(buffer + 12);
             hw.set_led_brightness(val);
         }
@@ -86,8 +87,12 @@ int handle_client_request(int client_fd, DeviceState* state) {
             int val = atoi(buffer + 14);
             start_exclusive_task(2, val);
         }
+        else if (strcmp(buffer, "CMD:AUTO_LED_ON") == 0) {
+            state->auto_led_mode = 1; // 자동 모드 켜기
+        }
         else if (strcmp(buffer, "CMD:STOP_ALL") == 0) {
             cancel_task_flag = 1;
+            state->auto_led_mode = 0; 
             hw.set_led_brightness(0);
             hw.set_buzzer(0);
             hw.display_7segment(0);
@@ -118,6 +123,8 @@ int handle_client_request(int client_fd, DeviceState* state) {
             hw.set_buzzer(0);
         }
         if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
+
+        if (strstr(buffer, "auto_led=1") != NULL) state->auto_led_mode = 1;
 
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
