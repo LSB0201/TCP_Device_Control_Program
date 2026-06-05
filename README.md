@@ -64,10 +64,8 @@ chmod +x build.sh
 ### 💡 2. 파일 전송
 우분투 PC에서 빌드 완료된 서버 바이너리 파일과 동적 라이브러리(`.so`)를 전송합니다.
 ```bash
-# 라즈베리파이에 프로젝트 폴더(예: veda_server)를 생성하고 모든 파일을 한 곳으로 전송합니다.
-scp build_server/remote_server build_server/lib*.so client_remote_control.html 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:~/폴더명/
 
-웹 클라이언트용 HTML 파일을 라즈베리파이 타겟 보드로 전송합니다.
+라즈베리파이에 프로젝트 폴더(예: veda_server)를 생성하고 모든 파일을 한 곳으로 전송합니다.
 ```bash
 # 라즈베리파이로 server 및 라이브러리 파일 전송(프로젝트 루트 디렉토리(veda_remote_control)에서 진행)
 scp build_server/remote_server build_server/lib*.so 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/저장할_파일_경로
