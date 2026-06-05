@@ -109,6 +109,7 @@ sudo kill -2 PID_번호 // 실행중인 서버 종료
 웹 브라우저 종료는 브라우저 창을 닫아주세요.
 
 ## 5. 파일 구조 (Directory Structure)
+```bash
 veda_remote_control/
 ├── CMakeLists.txt                 # 프로젝트 전체 빌드 자동화를 위한 CMake 설정 파일
 ├── build_client/                  # (자동 생성) C-Client 빌드 결과물 및 실행 파일 디렉토리
@@ -128,3 +129,4 @@ veda_remote_control/
     ├── i2c_light_temper.c         # [Hardware] I2C(PCF8591) 통신 기반 조도/온도 수집 및 섭씨 변환 쓰레드
     ├── seg7.c                     # [Hardware] 비트 마스킹을 이용한 7-Segment 카운트다운 출력 제어 모듈
     └── client.c                   # [Client] C언어 기반 터미널 제어용 클라이언트 실행 파일 (상시 수신 쓰레드 포함)
+```
