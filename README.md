@@ -9,8 +9,9 @@
 ### 1-1. veda_remote_control/src/client.c 파일의 10번째 줄 코드를 서버로 구동할 개인 라즈베리파이 ip 주소로 변경해주세요.
 `#define SERVER_IP "100.95.241.94" //" " 부분을 수정!`
 
-※ 크로스 컴파일 환경 빌드 시 의존성 에러가 발생할 경우, 타겟 보드(라즈베리파이)에서 우분투 호스트 PC로 라이브러리를 복사해야 합니다.
-### 1-2. libcrypt 라이브러리 및 헤더 파일 복사
+### 1-2. 크로스 컴파일 환경 빌드 시 의존성 에러가 발생할 경우, 타겟 보드(라즈베리파이)에서 우분투 호스트 PC로 라이브러리를 복사해야 합니다.
+
+### 1-2-1.libcrypt 라이브러리 및 헤더 파일 복사
 ```bash
 # 라즈베리파이의 libcrypt 라이브러리들을 우분투의 크로스 컴파일 환경으로 복사
 sudo scp 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/lib/aarch64-linux-gnu/libcrypt.so* /usr/aarch64-linux-gnu/lib/
@@ -19,7 +20,7 @@ sudo scp 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/lib/a
 sudo scp 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/usr/lib/aarch64-linux-gnu/libcrypt.so* /usr/aarch64-linux-gnu/lib/
 ```
 
-### 1-3. wiringPi 라이브러리 및 헤더 파일 복사
+### 1-2-2. wiringPi 라이브러리 및 헤더 파일 복사
 라즈베리파이의 하드웨어 제어(GPIO, I2C, PWM 등) 코드를 우분투에서 크로스 컴파일하기 위해, 타겟 보드의 `wiringPi` 라이브러리(`.so`)와 헤더 파일(`.h`)들을 우분투 환경으로 가져와야 합니다.
 
 ```bash
