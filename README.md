@@ -110,19 +110,21 @@ sudo kill -2 PID_번호 // 실행중인 서버 종료
 
 ## 5. 파일 구조 (Directory Structure)
 veda_remote_control/
-├── CMakeLists.txt
-├── build_client 	                # client 빌드시 자동 생성
-├── build_server	                # server 빌드시 자동 생성
-├── client_remote_control.html      # 웹 브라우저용 클라이언트
-├── include/
-│   ├── common.h                    # 공통 구조체, 매크로, 데이터 타입 정의
-│   ├── hardware.h                  # LED, 부저, 조도/온도(PCF8591), 7세그먼트 제어 함수 선언
-│   └── server.h                    # 소켓 생성, TCP 통신, 웹 HTTP 파싱 관련 함수 선언
-└── src/
-    ├── main.c                      # 서버 메인 진입점 (쓰레드 생성 및 epoll/이벤트 루프)
-    ├── tcp_server.c                # 서버와 TCP 소켓 및 통신 통제 구현
-    ├── led.c                       # PWM 이용한 LED 밝기 제어 구현
-    ├── buzzer.c                    # 부저 제어 구현
-    ├── i2c_light_temper.c          # PCF8591 I2C 인터페이스를 통한 조도/온도 데이터 수집 구현
-    ├── seg7.c                      # 7세그먼트 출력 제어 구현
-    └── client.c                    # 클라이언트.c 파일
+├── CMakeLists.txt                 # 프로젝트 전체 빌드 자동화를 위한 CMake 설정 파일
+├── build_client/                  # (자동 생성) C-Client 빌드 결과물 및 실행 파일 디렉토리
+├── build_server/                  # (자동 생성) Server 빌드 결과물 및 동적 라이브러리(.so) 디렉토리
+├── client_remote_control.html     # 웹 브라우저 제어용 비동기 GUI 클라이언트 (HTML/CSS/JS)
+│
+├── include/                       # 💡 헤더 파일 디렉토리
+│   ├── common.h                   # 시스템 전역 공유 구조체(DeviceState), 매크로, 플래그 정의
+│   ├── hardware.h                 # 하드웨어 제어(LED, 부저, I2C 센서, 7세그먼트) API 함수 선언
+│   └── server.h                   # 소켓 생성, TCP 통신, HTTP 파싱 및 epoll 이벤트 루프 함수 선언
+│
+└── src/                           # 💡 소스 코드 디렉토리
+    ├── main.c                     # [Server] 메인 진입점 (데몬화 프로세스, 동적 라이브러리 로드, 메인 루프 실행)
+    ├── tcp_server.c               # [Server] epoll 기반 다중 클라이언트(C/Web) 요청 라우팅 및 명령어 처리 구현
+    ├── led.c                      # [Hardware] 소프트웨어 PWM 기반 LED 밝기 제어 모듈
+    ├── buzzer.c                   # [Hardware] 주파수/박자 배열을 이용한 BGM 멜로디 재생 및 제어 모듈
+    ├── i2c_light_temper.c         # [Hardware] I2C(PCF8591) 통신 기반 조도/온도 수집 및 섭씨 변환 쓰레드
+    ├── seg7.c                     # [Hardware] 비트 마스킹을 이용한 7-Segment 카운트다운 출력 제어 모듈
+    └── client.c                   # [Client] C언어 기반 터미널 제어용 클라이언트 실행 파일 (상시 수신 쓰레드 포함)
