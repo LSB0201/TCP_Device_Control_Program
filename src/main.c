@@ -1,6 +1,8 @@
 #include <wiringPi.h>
 #include <dlfcn.h>
 #include <signal.h>
+#include <libgen.h>
+#include <limits.h>
 
 #include "common.h"
 #include "hardware.h"
@@ -32,24 +34,42 @@ void handle_signal(int sig) {
 
 // 동적 라이브러리 로드 및 함수 매핑
 int load_hardware_library(void) {
+    char exe_path[PATH_MAX]; // 현재 실행 중인 프로그램의 절대 경로 저장(파일명 포함)
+    char dir_path[PATH_MAX]; // 알아온 절대 경로에서 파일명 제거
+    char lib_path[PATH_MAX]; // 알아온 절대 경로에 .so파일 명을 붙인 경로
+
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len == -1) {
+        perror("readlink failed");
+        return -1;
+    }
+    exe_path[len] = '\0';
+
+    strncpy(dir_path, exe_path, sizeof(dir_path));
+    char *base_dir = dirname(dir_path);
+
     // LED 라이브러리 로드
-    led_lib_handle = dlopen("./libled_control.so", RTLD_LAZY);
+    snprintf(lib_path, sizeof(lib_path), "%s/libled_control.so", base_dir);
+    led_lib_handle = dlopen(lib_path, RTLD_LAZY);
     if (!led_lib_handle) { fprintf(stderr, "LED SO Load Error: %s\n", dlerror()); return -1; }
     hw.set_led_brightness = dlsym(led_lib_handle, "set_led_brightness");
 
     // 부저 라이브러리 로드
-    buzzer_lib_handle = dlopen("./libbuzzer_control.so", RTLD_LAZY);
+    snprintf(lib_path, sizeof(lib_path), "%s/libbuzzer_control.so", base_dir);
+    buzzer_lib_handle = dlopen(lib_path, RTLD_LAZY);
     if (!buzzer_lib_handle) { fprintf(stderr, "Buzzer SO Load Error: %s\n", dlerror()); return -1; }
     hw.set_buzzer = dlsym(buzzer_lib_handle, "set_buzzer");
     hw.buzzer_song_thread = dlsym(buzzer_lib_handle, "buzzer_song_thread");
 
     // 조도/온도 센서 라이브러리 로드
-    i2c_lib_handle = dlopen("./libi2c_control.so", RTLD_LAZY);
+    snprintf(lib_path, sizeof(lib_path), "%s/libi2c_control.so", base_dir);
+    i2c_lib_handle = dlopen(lib_path, RTLD_LAZY);
     if (!i2c_lib_handle) { fprintf(stderr, "I2C SO Load Error: %s\n", dlerror()); return -1; }
     hw.i2c_sensor_thread = dlsym(i2c_lib_handle, "i2c_sensor_thread");
 
     // 7세그먼트 라이브러리 로드
-    seg7_lib_handle = dlopen("./libseg7_control.so", RTLD_LAZY);
+    snprintf(lib_path, sizeof(lib_path), "%s/libseg7_control.so", base_dir);
+    seg7_lib_handle = dlopen(lib_path, RTLD_LAZY);
     if (!seg7_lib_handle) { fprintf(stderr, "SEG7 SO Load Error: %s\n", dlerror()); return -1; }
     hw.display_7segment = dlsym(seg7_lib_handle, "display_7segment");
     hw.seg_countdown_thread = dlsym(seg7_lib_handle, "seg_countdown_thread");
@@ -70,8 +90,7 @@ void cleanup_hardware(void) {
     if (seg7_lib_handle) dlclose(seg7_lib_handle);
 }
 
-int main(int argc, char *argv[]) {
-    int daemon_mode = 0;
+int main() {
     pthread_t sensor_tid;
 
     sigset_t mask;
@@ -81,19 +100,10 @@ int main(int argc, char *argv[]) {
     sigdelset(&mask, SIGINT);
     sigprocmask(SIG_SETMASK, &mask, NULL);
 
-    // 실행 인자 파싱 (데몬 모드 확인) <- 디버그용 추후 삭제
-    if (argc > 1 && strcmp(argv[1], "-d") == 0) {
-        daemon_mode = 1;
-    }
-
-    // 데몬화 처리
-    if (daemon_mode) {
-        if (daemon(1, 0) == -1) {
-            perror("Daemon failed");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        printf("Starting Remote Control Server in Foreground...\n");
+    // 데몬 프로세스로 실행
+    if (daemon(1, 0) == -1) {
+        perror("Daemon failed");
+        exit(EXIT_FAILURE);
     }
 
     // 시그널 핸들러 등록 (Ctrl+C 종료)
@@ -131,16 +141,9 @@ int main(int argc, char *argv[]) {
     if (server_fd < 0) {
         keep_running = 0; // 서버 생성 실패 시 바로 종료 수순으로 이동
     } else {
-        if (!daemon_mode) {
-            printf("Server initialized on port %d. Waiting for connections...\n", DEFAULT_PORT);
-        }
-        
         // 메인 이벤트 루프 실행 (epoll) - 함수 내부에서 무한 루프
         run_server_loop(server_fd, &device_state, &keep_running);
     }
-
-    // 데몬 모드가 아닐 때
-    if (!daemon_mode) printf("\nShutting down server safely...\n");
 
     // 센서 쓰레드 강제 종료 후 조인으로 자원 회수
     pthread_cancel(sensor_tid); 
@@ -154,8 +157,6 @@ int main(int argc, char *argv[]) {
     // 모든 장치 끄기 및 Mutex 없애기
     cleanup_hardware();
     pthread_mutex_destroy(&device_state.mutex);
-
-    if (!daemon_mode) printf("Shutdown complete.\n");
     
     return EXIT_SUCCESS;
 }

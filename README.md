@@ -70,9 +70,7 @@ scp client_remote_control.html 라즈베리파이_유저_명@개인_라즈베리
 ### 1) Server 실행 (라즈베리파이 타겟 보드 측)
 라즈베리파이 터미널에서 전송받은 디렉토리로 이동한 후, 하드웨어 제어(GPIO) 권한을 위해 `sudo`를 사용하여 실행합니다.
 ```bash
-sudo ./remote_server # 데몬 모드 X
-
-sudo ./remote_server -d # 데몬 모드 실행
+sudo ./remote_server # 데몬으로 서버 실행
 ```
 서버 종료: Ctrl + c
 

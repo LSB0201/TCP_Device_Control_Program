@@ -3,40 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>클라이언트 원격 제어 화면 구성</title>
+    <title>VEDA 센서 원격 제어 대시보드</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f9f9f9; padding: 20px; }
-        .container { 
-            border: 2px solid #333; background-color: white; 
-            max-width: 600px; margin: auto; padding: 30px; border-radius: 5px;
+        /* 기본 테마 및 색상 변수 설정 */
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --btn-on: #2ecc71;
+            --btn-on-hover: #27ae60;
+            --btn-off: #e74c3c;
+            --btn-off-hover: #c0392b;
+            --btn-action: #3498db;
+            --btn-action-hover: #2980b9;
+            --danger: #e74c3c;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+            --shadow-hover: 0 10px 20px rgba(0,0,0,0.08);
         }
-        h2 { margin-top: 0; font-size: 24px; }
-        .divider { height: 10px; background-color: #222; margin: 20px 0; }
+
+        body { 
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 30px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        .header-title { 
+            margin-top: 0; margin-bottom: 30px; 
+            font-size: 28px; font-weight: 800; 
+            color: var(--text-main); 
+            letter-spacing: -0.5px;
+        }
+
+        /* 반응형 그리드 대시보드 레이아웃 */
+        .dashboard { 
+            display: grid; 
+            gap: 20px; 
+            width: 100%; 
+            max-width: 900px; 
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+        }
+
+        /* 개별 장치 카드 스타일 */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: var(--shadow); 
+            transition: transform 0.2s ease, box-shadow 0.2s ease; 
+        }
+        .card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: var(--shadow-hover); 
+        }
+
+        .card h3 { 
+            margin-top: 0; font-size: 1.3rem; 
+            border-bottom: 2px solid #f0f0f0; 
+            padding-bottom: 12px; margin-bottom: 20px; 
+            display: flex; align-items: center; 
+        }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .control-group h3 { font-size: 20px; margin-bottom: 15px; }
-        .control-group p { margin-bottom: 5px; font-weight: bold; color: #555; }
-        
+        .control-group { margin-bottom: 20px; }
+        .control-group p { 
+            font-size: 0.95rem; color: var(--text-muted); 
+            margin-bottom: 10px; font-weight: 600; 
+        }
+
+        /* 버튼 공통 스타일 */
         button { 
-            padding: 10px 20px; font-size: 16px; border: none; 
-            border-radius: 10px; cursor: pointer; margin: 5px; font-weight: bold;
+            border: none; border-radius: 8px; 
+            padding: 12px 18px; font-size: 0.95rem; font-weight: 700; 
+            cursor: pointer; transition: all 0.2s; 
+            color: white; margin-right: 6px; margin-bottom: 6px; 
         }
-        /* 첨부 이미지 색상 맞춤 */
-        .btn-off { background-color: #ffcccc; color: #333; }
-        .btn-on { background-color: #ccffcc; color: #333; }
-        .btn-blue { background-color: #cce5ff; color: #333; }
-        .btn-stop-all { background-color: #ffcccc; color: #333; width: 60%; padding: 15px; margin-top: 30px; font-size: 18px; }
+        button:active { transform: scale(0.96); }
+
+        /* 버튼 색상별 스타일 */
+        .btn-on { background-color: var(--btn-on); }
+        .btn-on:hover { background-color: var(--btn-on-hover); box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
         
-        input[type="number"] { 
-            padding: 10px; font-size: 16px; width: 120px; text-align: center; 
-            border: 2px solid #333; border-radius: 5px; 
+        .btn-off { background-color: var(--btn-off); }
+        .btn-off:hover { background-color: var(--btn-off-hover); box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); }
+        
+        .btn-blue { background-color: var(--btn-action); }
+        .btn-blue:hover { background-color: var(--btn-action-hover); box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+        
+        .btn-stop-all { 
+            background-color: var(--danger); width: 100%; max-width: 900px; 
+            padding: 18px; font-size: 1.2rem; margin-top: 30px; 
+            border-radius: 12px; letter-spacing: 1px; 
         }
+        .btn-stop-all:hover { 
+            background-color: var(--btn-off-hover); 
+            box-shadow: 0 6px 15px rgba(231, 76, 60, 0.4); 
+        }
+
+        /* 입력 폼 및 센서 출력창 스타일 */
+        .input-group { display: flex; align-items: center; }
+        input[type="number"] { 
+            padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; 
+            font-size: 1rem; width: 120px; font-weight: bold;
+            outline: none; transition: border-color 0.2s; margin-right: 10px; 
+        }
+        input[type="number"]:focus { border-color: var(--btn-action); }
+        
         .sensor-box { 
-            display: inline-block; width: 150px; height: 40px; border: 2px solid #333; 
-            vertical-align: middle; line-height: 40px; font-weight: bold; font-size: 18px; text-align: center;
+            background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; 
+            padding: 15px; font-size: 1.8rem; font-weight: 800; 
+            text-align: center; color: var(--btn-action); margin-bottom: 15px; 
+            letter-spacing: 1px;
         }
     </style>
     <script>
+        // 기존과 100% 동일한 자바스크립트 로직
         function sendCommand(cmd) {
             fetch('/api/cmd?' + cmd).catch(err => console.error(err));
         }
@@ -61,13 +146,11 @@
                 if (lightTimer) return;
                 fetchSensor('light'); 
                 lightTimer = setInterval(() => fetchSensor('light'), 3000);
-                
                 sendCommand('auto_led=1'); 
             } else {
                 clearInterval(lightTimer);
                 lightTimer = null;
-                document.getElementById('light_val').innerText = ''; 
-                
+                document.getElementById('light_val').innerText = '-'; 
                 sendCommand('auto_led=0'); 
             }
         }
@@ -80,7 +163,7 @@
             } else {
                 clearInterval(tempTimer);
                 tempTimer = null;
-                document.getElementById('temp_val').innerText = ''; 
+                document.getElementById('temp_val').innerText = '-'; 
             }
         }
 
@@ -89,7 +172,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (type === 'light') document.getElementById('light_val').innerText = data.light;
-                    if (type === 'temp') document.getElementById('temp_val').innerText = data.temp.toFixed(1);
+                    if (type === 'temp') document.getElementById('temp_val').innerText = data.temp.toFixed(1) + " °C";
                 }).catch(err => console.error(err));
         }
 
@@ -101,68 +184,69 @@
     </script>
 </head>
 <body>
-    <h2>클라이언트 원격 제어 화면 구성</h2>
-    <div class="container">
+
+    <h2 class="header-title">VEDA 스마트홈 제어</h2>
+
+    <div class="dashboard">
         
-        <div class="control-group">
-            <h3>LED</h3>
-            <div class="grid-2">
-                <div>
-                    <p>LED 전원</p>
-                    <button class="btn-off" onclick="setLedPower(false)">Off</button>
-                    <button class="btn-on" onclick="setLedPower(true)">On</button>
-                    </div>
-                <div>
-                    <p>LED 밝기 조절</p>
-                    <button class="btn-blue" onclick="setLedBrightness(30)">최저</button>
-                    <button class="btn-blue" onclick="setLedBrightness(60)">중간</button>
-                    <button class="btn-blue" onclick="setLedBrightness(100)">최대</button>
+        <div class="card">
+            <h3>💡 LED 조명 제어</h3>
+            <div class="control-group">
+                <p>전원</p>
+                <button class="btn-off" onclick="setLedPower(false)">전원 끄기</button>
+                <button class="btn-on" onclick="setLedPower(true)">전원 켜기</button>
+            </div>
+            <div class="control-group">
+                <p>밝기 조절 (PWM)</p>
+                <button class="btn-blue" onclick="setLedBrightness(30)">최저 (30%)</button>
+                <button class="btn-blue" onclick="setLedBrightness(60)">중간 (60%)</button>
+                <button class="btn-blue" onclick="setLedBrightness(100)">최대 (100%)</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>☀️ 조도 모니터링 (자동 연동)</h3>
+            <div class="control-group">
+                <p>현재 주변 밝기</p>
+                <div id="light_val" class="sensor-box"> - </div>
+                <button class="btn-on" onclick="toggleLight(true)">측정 시작</button>
+                <button class="btn-off" onclick="toggleLight(false)">측정 종료</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔢 7-Segment 타이머</h3>
+            <div class="control-group">
+                <p>카운트다운 숫자 입력 (0 ~ 9)</p>
+                <div class="input-group">
+                    <input type="number" id="segInput" min="0" max="9" placeholder="숫자 입력">
+                    <button class="btn-blue" onclick="startCountdown()">카운트 시작</button>
                 </div>
             </div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="grid-2 control-group">
-            <div>
-                <h3>부저</h3>
-                <p>음악 제어</p>
-                <button class="btn-off" onclick="sendCommand('buzzer=stop')">소리 Off</button>
-                <button class="btn-on" onclick="sendCommand('buzzer=play')">소리 On</button>
-            </div>
-            <div>
-                <h3>7세그먼트</h3>
-                <p>전송할 숫자 입력(0 ~ 9)</p>
-                <input type="number" id="segInput" min="0" max="9" placeholder="입력하는 곳">
-                <button class="btn-blue" onclick="startCountdown()">입력 버튼</button>
-            </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="grid-2 control-group">
-            <div>
-                <h3>조도 센서</h3>
-                <p>현재 조도 센서 값</p>
-                <div id="light_val" class="sensor-box"> - </div>
-                <br>
-                <button class="btn-on" onclick="toggleLight(true)">측정 시작</button>
-                <button class="btn-off" onclick="toggleLight(false)">측정 종료</button>
-            </div>
-            <div>
-                <h3>온도 측정</h3>
-                <p>현재 온도 값</p>
+        <div class="card">
+            <h3>🌡️ 온도 모니터링</h3>
+            <div class="control-group">
+                <p>현재 실내 온도</p>
                 <div id="temp_val" class="sensor-box"> - </div>
-                <br>
                 <button class="btn-on" onclick="toggleTemp(true)">측정 시작</button>
                 <button class="btn-off" onclick="toggleTemp(false)">측정 종료</button>
             </div>
         </div>
 
-        <div style="text-align: center;">
-            <button class="btn-stop-all" onclick="stopAll()">전체 종료</button>
+        <div class="card">
+            <h3>🎵 부저 멜로디 제어</h3>
+            <div class="control-group">
+                <p>음악 재생 상태</p>
+                <button class="btn-on" onclick="sendCommand('buzzer=play')">노래 재생</button>
+                <button class="btn-off" onclick="sendCommand('buzzer=stop')">재생 중지</button>
+            </div>
         </div>
 
     </div>
+
+    <button class="btn-stop-all" onclick="stopAll()">🛑 시스템 전체 긴급 정지</button>
+
 </body>
 </html>

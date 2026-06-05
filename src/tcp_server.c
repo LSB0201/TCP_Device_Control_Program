@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <wiringPi.h>
+#include <syslog.h>
 
 #include "server.h"
 #include "hardware.h"
@@ -52,7 +53,7 @@ int init_tcp_server(int port) {
     return server_fd;
 }
 
-// HTTP 라우팅 및 처리
+// client.c 및 웹 브라우저 클라이언트 처리
 int handle_client_request(int client_fd, DeviceState* state) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
@@ -60,12 +61,15 @@ int handle_client_request(int client_fd, DeviceState* state) {
     int n = read(client_fd, buffer, BUFFER_SIZE - 1);
     if (n <= 0) return 0; // 상대방이 소켓을 닫았거나 에러 시 0 반환 (연결 종료)
 
-    // 디버그용
-    printf("\n소켓 FD(%d), %d 바이트\n", client_fd, n);
-    printf("-----------------------------------------\n");
-    printf("%s\n", buffer);
-    printf("-----------------------------------------\n");
-    fflush(stdout); // 터미널 출력 버퍼 즉시 비우기
+    // syslog로 로그 생성
+    if (strncmp(buffer, "CMD:", 4) == 0) {
+        syslog(LOG_INFO, "[C-Client / FD:%d] %s", client_fd, buffer);
+    }
+    else if (strncmp(buffer, "GET ", 4) == 0) {
+        char first_line[64];
+        sscanf(buffer, "%63[^\r\n]", first_line); 
+        syslog(LOG_INFO, "[Web-Client / FD:%d] %s", client_fd, first_line);
+    }
 
     // client.c TCP 명령어 처리
     if (strncmp(buffer, "CMD:", 4) == 0) {
@@ -112,24 +116,31 @@ int handle_client_request(int client_fd, DeviceState* state) {
     // 웹 브라우저에서 보낸 HTTP 명령어(AJAX) 처리
     else if (strstr(buffer, "GET /api/cmd?") != NULL) {
         char *ptr;
-        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) {
+        if ((ptr = strstr(buffer, "led_pwm=")) != NULL) { // LED
             state->auto_led_mode = 0;
             hw.set_led_brightness(atoi(ptr + 8));
         }
 
+        // 부저
         if (strstr(buffer, "buzzer=play") != NULL) start_exclusive_task(1, 0);
 
         if (strstr(buffer, "buzzer=stop") != NULL) {
             if (current_exclusive_task == 1) cancel_task_flag = 1;
             hw.set_buzzer(0);
         }
-        if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10));
+
+        // 7세그먼트, 카운트 다운
+        if ((ptr = strstr(buffer, "seg_count=")) != NULL) start_exclusive_task(2, atoi(ptr + 10)); 
+
+        // 조도에 따른 LED 조작
+        if (strstr(buffer, "auto_led=1") != NULL) state->auto_led_mode = 1;
 
         if (strstr(buffer, "auto_led=0") != NULL) {
             state->auto_led_mode = 0;
             hw.set_led_brightness(0); 
         }
 
+        // 전체 종료
         if (strstr(buffer, "stop_all=1") != NULL) {
             cancel_task_flag = 1;
             state->auto_led_mode = 0;

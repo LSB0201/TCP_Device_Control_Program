@@ -45,7 +45,7 @@ void* i2c_sensor_thread(void* arg) {
     // I2C 장치 초기화
     int fd = wiringPiI2CSetup(P_ADDR);
     if (fd < 0) {
-        perror("I2C Sertup");
+        perror("I2C Setup");
         return NULL;
     }
 
