@@ -31,6 +31,7 @@ sudo scp 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/usr/i
 
 # (softTone.h, softPwm.h 등 소프트웨어 PWM/톤 관련 헤더)
 sudo scp 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/usr/include/soft*.h /usr/aarch64-linux-gnu/include/
+```
 ---
 
 ## 🏗️ 2. 빌드 방법 (Build)
@@ -53,8 +54,18 @@ chmod +x build.sh
 ---
 
 ## 📦 3. 파일 전송 방법 (Deployment)
-우분투 PC에서 빌드 완료된 서버 바이너리 파일과 동적 라이브러리(`.so`), 그리고 웹 제어용 HTML 파일을 라즈베리파이 타겟 보드로 전송합니다.
 
+### 💡 1. 파일 전송 경로 명확화
+실행 파일(`remote_server`), 동적 라이브러리(`.so`), `client_remote_control.html` 파일이 모두 같은 폴더에 있어야 가장 완벽하게 동작합니다.
+따라서 특정 폴더를 만들어 저장할 것을 권장합니다.
+
+### 💡 2. 파일 전송
+우분투 PC에서 빌드 완료된 서버 바이너리 파일과 동적 라이브러리(`.so`)를 전송합니다.
+```bash
+# 라즈베리파이에 프로젝트 폴더(예: veda_server)를 생성하고 모든 파일을 한 곳으로 전송합니다.
+scp build_server/remote_server build_server/lib*.so client_remote_control.html 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:~/폴더명/
+
+웹 클라이언트용 HTML 파일을 라즈베리파이 타겟 보드로 전송합니다.
 ```bash
 # 라즈베리파이로 server 및 라이브러리 파일 전송(프로젝트 루트 디렉토리(veda_remote_control)에서 진행)
 scp build_server/remote_server build_server/lib*.so 라즈베리파이_유저_명@개인_라즈베리파이_ip주소:/저장할_파일_경로
@@ -70,20 +81,22 @@ scp client_remote_control.html 라즈베리파이_유저_명@개인_라즈베리
 ### 1) Server 실행 (라즈베리파이 타겟 보드 측)
 라즈베리파이 터미널에서 전송받은 디렉토리로 이동한 후, 하드웨어 제어(GPIO) 권한을 위해 `sudo`를 사용하여 실행합니다.
 ```bash
-sudo ./remote_server # 데몬으로 서버 실행
+sudo ./remote_server # 데몬 프로세스로 실행
 ```
-서버 종료: Ctrl + c
 
-※ 데몬으로 서버 실행시 PID 확인 방법
+※ 데몬으로 서버 실행시 PID 확인 및 종료 방법
 ```bash
-ps -ef | grep remote_server
+ps -ef | grep remote_server // 서버 실행 확인
 
-pgrep remote_server // PID만 확인
+pgrep remote_server // 실행중인 서버 프로세스의 PID만 확인
+
+sudo kill -2 PID_번호 // 실행중인 서버 종료
 ```
 
 ### 2) C-Client 실행 (우분투 호스트 PC 측)
 우분투 터미널에서 빌드 완료된 클라이언트 프로그램을 실행하여 텍스트 메뉴 기반으로 원격 제어 명령을 내립니다.
 ```bash
+# 프로젝트의 루트 디렉토리(/veda_remote_control) 기준 명령어
 ./build_client/remote_client
 ```
 클라이언트 종료: Ctrl + c 또는 '0' 입력
