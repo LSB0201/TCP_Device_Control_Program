@@ -141,11 +141,17 @@ int main() {
             case 3:
                 printf("\n시작할 숫자 입력 (0~9): ");
                 int num;
-                if (scanf("%d", &num) != 1) {
+                if (scanf("%d", &num) != 1) { // 문자 입력을 받았을 때
                     while(getchar() != '\n');
                     printf("숫자를 올바르게 입력해주세요.\n");
                     break;
                 }
+
+                if (num < 0 || num > 9) {
+                    printf("[경고] 0에서 9 사이의 숫자만 입력 가능합니다.\n");
+                    break;
+                }
+                
                 snprintf(cmd, sizeof(cmd), "CMD:SEG_START:%d", num);
                 if (write(sock, cmd, strlen(cmd)) < 0) break;
                 break;
