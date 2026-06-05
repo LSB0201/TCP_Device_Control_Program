@@ -107,3 +107,22 @@ sudo kill -2 PID_번호 // 실행중인 서버 종료
 [http://개인_라즈베리파이_ip주소:8080]
 ```
 웹 브라우저 종료는 브라우저 창을 닫아주세요.
+
+## 5. 파일 구조 (Directory Structure)
+veda_remote_control/
+├── CMakeLists.txt
+├── build_client 	                # client 빌드시 자동 생성
+├── build_server	                # server 빌드시 자동 생성
+├── client_remote_control.html      # 웹 브라우저용 클라이언트
+├── include/
+│   ├── common.h                    # 공통 구조체, 매크로, 데이터 타입 정의
+│   ├── hardware.h                  # LED, 부저, 조도/온도(PCF8591), 7세그먼트 제어 함수 선언
+│   └── server.h                    # 소켓 생성, TCP 통신, 웹 HTTP 파싱 관련 함수 선언
+└── src/
+    ├── main.c                      # 서버 메인 진입점 (쓰레드 생성 및 epoll/이벤트 루프)
+    ├── tcp_server.c                # 서버와 TCP 소켓 및 통신 통제 구현
+    ├── led.c                       # PWM 이용한 LED 밝기 제어 구현
+    ├── buzzer.c                    # 부저 제어 구현
+    ├── i2c_light_temper.c          # PCF8591 I2C 인터페이스를 통한 조도/온도 데이터 수집 구현
+    ├── seg7.c                      # 7세그먼트 출력 제어 구현
+    └── client.c                    # 클라이언트.c 파일
